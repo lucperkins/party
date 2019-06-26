@@ -11,12 +11,19 @@ import (
 type MultipartRequest struct {
 	Filepath      string
 	FileFieldName string
+	Boundary      string
 	Params        map[string]string
 }
 
-func (r *MultipartRequest) Body() (*bytes.Buffer, string, string, error) {
+func (r *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
+
+	if r.Boundary != "" {
+		if err := writer.SetBoundary(r.Boundary); err != nil {
+			return nil, "", "", err
+		}
+	}
 
 	if r.Filepath != "" {
 		var fileFieldName string
@@ -56,7 +63,7 @@ func (r *MultipartRequest) Body() (*bytes.Buffer, string, string, error) {
 }
 
 func (r *MultipartRequest) Request(method, url string) (*http.Request, error) {
-	body, contentType, _, err := r.Body()
+	body, contentType, _, err := r.body()
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	badFile           = "does-not-exist.txt"
 	testFile          = "party.go"
 	testFileFieldName = "upload-file"
 )
@@ -15,12 +16,20 @@ const (
 func TestRequestBodyCreation(t *testing.T) {
 	is := assert.New(t)
 
-	req := &MultipartRequest{
+	req := &MultipartRequest{}
+	_, _, _, err := req.body()
+	is.NoError(err)
+
+	req.Filepath = badFile
+	_, _, _, err = req.body()
+	is.Error(err)
+
+	req = &MultipartRequest{
 		Filepath: testFile,
 		FileFieldName: testFileFieldName,
 	}
 
-	body, contentType, boundary, err := req.Body()
+	body, contentType, boundary, err := req.body()
 	is.NoError(err)
 	is.NotNil(body)
 	is.NotEmpty(contentType)
