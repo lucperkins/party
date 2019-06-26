@@ -14,7 +14,7 @@ type MultipartRequest struct {
 	Params        map[string]string
 }
 
-func (r *MultipartRequest) Body() (*bytes.Buffer, string, error) {
+func (r *MultipartRequest) Body() (*bytes.Buffer, string, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -23,7 +23,7 @@ func (r *MultipartRequest) Body() (*bytes.Buffer, string, error) {
 
 		f, err := os.Open(r.Filepath)
 		if err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 
 		if r.FileFieldName == "" {
@@ -34,7 +34,7 @@ func (r *MultipartRequest) Body() (*bytes.Buffer, string, error) {
 
 		part, err := writer.CreateFormFile(fileFieldName, r.Filepath)
 		if err != nil {
-			return nil, "", err
+			return nil, "", "", err
 		}
 
 		_, err = io.Copy(part, f)
@@ -43,20 +43,20 @@ func (r *MultipartRequest) Body() (*bytes.Buffer, string, error) {
 	if r.Params != nil {
 		for k, v := range r.Params {
 			if err := writer.WriteField(k, v); err != nil {
-				return nil, "", err
+				return nil, "", "", err
 			}
 		}
 	}
 
 	if err := writer.Close(); err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 
-	return body, writer.FormDataContentType(), nil
+	return body, writer.FormDataContentType(), writer.Boundary(), nil
 }
 
 func (r *MultipartRequest) Request(method, url string) (*http.Request, error) {
-	body, contentType, err := r.Body()
+	body, contentType, _, err := r.Body()
 	if err != nil {
 		return nil, err
 	}
@@ -67,4 +67,6 @@ func (r *MultipartRequest) Request(method, url string) (*http.Request, error) {
 	}
 
 	req.Header.Set("Content-Type", contentType)
+
+	return req, nil
 }
