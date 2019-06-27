@@ -25,7 +25,7 @@ func TestRequestBodyCreation(t *testing.T) {
 	is.Error(err)
 
 	req = &MultipartRequest{
-		Filepath: testFile,
+		Filepath:      testFile,
 		FileFieldName: testFileFieldName,
 	}
 
@@ -60,4 +60,16 @@ func TestRequestBodyCreation(t *testing.T) {
 	is.NotNil(fileBytes)
 
 	is.Equal(bs, fileBytes)
+}
+
+func TestMultipartRequestHandler(t *testing.T) {
+	is := assert.New(t)
+
+	handler := MultipartRequestHandler{
+		MaxBytes: 32 << 20,
+	}
+	is.NoError(handler.validate())
+
+	is.Equal(handler.FileFieldName, defaultFileFieldName)
+	is.Equal(handler.MaxBytes, int64(32 << 20))
 }

@@ -2,11 +2,16 @@ package party
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 )
+
+const defaultFileFieldName = "file"
+
+var ErrEmptyRequest = errors.New("request has no file and no request params")
 
 type MultipartRequest struct {
 	Filepath      string
@@ -15,31 +20,50 @@ type MultipartRequest struct {
 	Params        map[string]string
 }
 
-func (r *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
+type MultipartRequestHandler struct {
+	MaxBytes      int64
+	FileFieldName string
+}
+
+func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request) (multipart.File, *multipart.FileHeader, error) {
+	if err := h.validate(); err != nil {
+		return nil, nil, err
+	}
+
+	if err := r.ParseMultipartForm(h.MaxBytes); err != nil {
+		return nil, nil, err
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, h.MaxBytes)
+
+	if h.FileFieldName == "" {
+		h.FileFieldName = defaultFileFieldName
+	}
+
+	return r.FormFile(h.FileFieldName)
+}
+
+func (c *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	if r.Boundary != "" {
-		if err := writer.SetBoundary(r.Boundary); err != nil {
+	if c.Boundary != "" {
+		if err := writer.SetBoundary(c.Boundary); err != nil {
 			return nil, "", "", err
 		}
 	}
 
-	if r.Filepath != "" {
-		var fileFieldName string
-
-		f, err := os.Open(r.Filepath)
+	if c.Filepath != "" {
+		f, err := os.Open(c.Filepath)
 		if err != nil {
 			return nil, "", "", err
 		}
 
-		if r.FileFieldName == "" {
-			fileFieldName = "file"
-		} else {
-			fileFieldName = r.FileFieldName
+		if c.FileFieldName == "" {
+			c.FileFieldName = defaultFileFieldName
 		}
 
-		part, err := writer.CreateFormFile(fileFieldName, r.Filepath)
+		part, err := writer.CreateFormFile(c.FileFieldName, c.Filepath)
 		if err != nil {
 			return nil, "", "", err
 		}
@@ -47,8 +71,8 @@ func (r *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 		_, err = io.Copy(part, f)
 	}
 
-	if r.Params != nil {
-		for k, v := range r.Params {
+	if c.Params != nil {
+		for k, v := range c.Params {
 			if err := writer.WriteField(k, v); err != nil {
 				return nil, "", "", err
 			}
@@ -62,8 +86,12 @@ func (r *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 	return body, writer.FormDataContentType(), writer.Boundary(), nil
 }
 
-func (r *MultipartRequest) Request(method, url string) (*http.Request, error) {
-	body, contentType, _, err := r.body()
+func (c *MultipartRequest) Request(method, url string) (*http.Request, error) {
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+
+	body, contentType, _, err := c.body()
 	if err != nil {
 		return nil, err
 	}
@@ -76,4 +104,20 @@ func (r *MultipartRequest) Request(method, url string) (*http.Request, error) {
 	req.Header.Set("Content-Type", contentType)
 
 	return req, nil
+}
+
+func (h *MultipartRequestHandler) validate() error {
+	if h.FileFieldName == "" {
+		h.FileFieldName = defaultFileFieldName
+	}
+
+	return nil
+}
+
+func (c *MultipartRequest) validate() error {
+	if c.Filepath == "" && c.Params == nil {
+		return ErrEmptyRequest
+	}
+
+	return nil
 }
