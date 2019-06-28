@@ -13,35 +13,45 @@ const defaultFileFieldName = "file"
 
 var ErrEmptyRequest = errors.New("request has no file and no request params")
 
-// Multipart request configuration. A file can be included with the request and/or form parameters. An ErrEmptyRequest
-// is returned if neither is present.
-type MultipartRequest struct {
-	// Path to the file to include the request (optional)
-	Filepath      string
-	// The field name for the file included in the request (default is "file")
-	FileFieldName string
-	// The request boundary (automatically generated if none supplied)
-	Boundary      string
-	// Multipart request parameters (optional)
-	Params        map[string]string
-}
+type (
+	// Multipart request configuration. A file can be included with the request and/or form parameters. An ErrEmptyRequest
+	// is returned if neither is present.
+	MultipartRequest struct {
+		// Path to the file to include in the request (optional)
+		Filepath      string
+		// The field name for the file included in the request (default is "file")
+		FileFieldName string
+		// The request boundary (automatically generated if none supplied)
+		Boundary      string
+		// Multipart request parameters (optional)
+		Params        map[string]string
+	}
 
-// Multipart request handler configuration.
-type MultipartRequestHandler struct {
-	// Maximum allowable bytes in the request
-	MaxBytes      int64
-	// The field name for the file included in the request (default is "file")
-	FileFieldName string
-}
+	// Multipart request handler configuration.
+	MultipartRequestHandler struct {
+		// Maximum allowable bytes in the request
+		MaxBytes      int64
+		// The field name for the file included in the request (default is "file")
+		FileFieldName string
+	}
+
+	// A multipart response extracted from an http.Request object
+	MultipartResponse struct {
+		// The file included in the request
+		File   multipart.File
+		// The header metadata describing the file
+		Header *multipart.FileHeader
+	}
+)
 
 // Translate an incoming HTTP request into a multipart file and a multipart file header (or an error).
-func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request) (multipart.File, *multipart.FileHeader, error) {
+func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request) (*MultipartResponse, error) {
 	if err := h.validate(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := r.ParseMultipartForm(h.MaxBytes); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, h.MaxBytes)
@@ -50,7 +60,15 @@ func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request)
 		h.FileFieldName = defaultFileFieldName
 	}
 
-	return r.FormFile(h.FileFieldName)
+	file, header, err := r.FormFile(h.FileFieldName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MultipartResponse{
+		File:   file,
+		Header: header,
+	}, nil
 }
 
 // Creates a request body (as a byte buffer) out of the supplied multipart request configuration and also returns the

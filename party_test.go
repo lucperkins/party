@@ -109,13 +109,13 @@ func ExampleMultipartRequestHandler_Handle() {
 	srv := &http.Server{
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			file, header, err := handler.Handle(w, r)
+			res, err := handler.Handle(w, r)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			log.Println("Filename:", header.Filename)
-			bs, err := ioutil.ReadAll(file)
+			log.Println("Filename:", res.Header.Filename)
+			bs, err := ioutil.ReadAll(res.File)
 			if err != nil {
 				log.Fatal(err)
 			}
