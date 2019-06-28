@@ -91,7 +91,9 @@ func ExampleMultipartRequest_Request() {
 		log.Println(err)
 	}
 
-	res, err := http.Client{}.Do(req)
+	client := &http.Client{}
+
+	res, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 	}
