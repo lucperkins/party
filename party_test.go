@@ -14,11 +14,12 @@ const (
 	badFile           = "does-not-exist.txt"
 	goodFile          = "party.go"
 	testFileFieldName = "upload-file"
-	testMethod        = http.MethodPost
+	testMethod        = http.MethodPut
 )
 
 var goodParams = map[string]string{
-	"foo": "bar",
+	"Armenia": "Yerevan",
+	"Georgia": "Tbilisi",
 }
 
 func TestRequestBodyCreation(t *testing.T) {
@@ -97,6 +98,9 @@ func TestMultipartRequestHandler(t *testing.T) {
 	is.NotNil(res)
 	is.Equal(res.Header.Filename, goodFile)
 	is.Equal(res.Header.Header.Get("Content-Type"), "application/octet-stream")
+	is.Equal(r.FormValue("Armenia"), "Yerevan")
+	is.Equal(r.FormValue("Georgia"), "Tbilisi")
+	is.Empty(r.FormValue("foo"))
 
 	bs, err := ioutil.ReadFile(goodFile)
 	is.NoError(err)
