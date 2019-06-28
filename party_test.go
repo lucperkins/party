@@ -6,14 +6,20 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
 const (
 	badFile           = "does-not-exist.txt"
-	testFile          = "party.go"
+	goodFile          = "party.go"
 	testFileFieldName = "upload-file"
+	testMethod        = http.MethodPost
 )
+
+var goodParams = map[string]string{
+	"foo": "bar",
+}
 
 func TestRequestBodyCreation(t *testing.T) {
 	is := assert.New(t)
@@ -27,7 +33,7 @@ func TestRequestBodyCreation(t *testing.T) {
 	is.Error(err)
 
 	req = &MultipartRequest{
-		Filepath:      testFile,
+		Filepath:      goodFile,
 		FileFieldName: testFileFieldName,
 	}
 
@@ -37,7 +43,7 @@ func TestRequestBodyCreation(t *testing.T) {
 	is.NotEmpty(contentType)
 	is.NotEmpty(boundary)
 
-	bs, err := ioutil.ReadFile(testFile)
+	bs, err := ioutil.ReadFile(goodFile)
 	is.NoError(err)
 	is.NotNil(bs)
 
@@ -50,7 +56,7 @@ func TestRequestBodyCreation(t *testing.T) {
 	is.NotNil(form)
 
 	file := form.File[testFileFieldName][0]
-	is.Equal(file.Filename, testFile)
+	is.Equal(file.Filename, goodFile)
 
 	f, err := file.Open()
 	is.NoError(err)
@@ -73,16 +79,37 @@ func TestMultipartRequestHandler(t *testing.T) {
 	is.NoError(handler.validate())
 
 	is.Equal(handler.FileFieldName, defaultFileFieldName)
-	is.Equal(handler.MaxBytes, int64(32 << 20))
+	is.Equal(handler.MaxBytes, int64(32<<20))
+
+	params := &MultipartRequest{
+		Filepath: goodFile,
+		Params:   goodParams,
+	}
+
+	r, err := params.Request(testMethod, "https://example.com")
+	is.NoError(err)
+	is.NotNil(r)
+
+	w := httptest.NewRecorder()
+
+	res, err := handler.Handle(w, r)
+	is.NoError(err)
+	is.NotNil(res)
+	is.Equal(res.Header.Filename, goodFile)
+	is.Equal(res.Header.Header.Get("Content-Type"), "application/octet-stream")
+
+	bs, err := ioutil.ReadFile(goodFile)
+	is.NoError(err)
+	is.Equal(res.Header.Size, int64(len(bs)))
 }
 
 func ExampleMultipartRequest_Request() {
 	params := &MultipartRequest{
-		Filepath: "./dissertation.pdf",
+		Filepath:      "./dissertation.pdf",
 		FileFieldName: "file",
 		Params: map[string]string{
 			"Author": "Luc Perkins",
-			"Title": "The purposive Prometheus: re-imagining practical reason beyond homo œconomicus",
+			"Title":  "The purposive Prometheus: re-imagining practical reason beyond homo œconomicus",
 		},
 	}
 
@@ -115,6 +142,7 @@ func ExampleMultipartRequestHandler_Handle() {
 			}
 
 			log.Println("Filename:", res.Header.Filename)
+
 			bs, err := ioutil.ReadAll(res.File)
 			if err != nil {
 				log.Fatal(err)

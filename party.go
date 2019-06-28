@@ -18,19 +18,19 @@ type (
 	// is returned if neither is present.
 	MultipartRequest struct {
 		// Path to the file to include in the request (optional)
-		Filepath      string
+		Filepath string
 		// The field name for the file included in the request (default is "file")
 		FileFieldName string
 		// The request boundary (automatically generated if none supplied)
-		Boundary      string
+		Boundary string
 		// Multipart request parameters (optional)
-		Params        map[string]string
+		Params map[string]string
 	}
 
 	// Multipart request handler configuration.
 	MultipartRequestHandler struct {
 		// Maximum allowable bytes in the request
-		MaxBytes      int64
+		MaxBytes int64
 		// The field name for the file included in the request (default is "file")
 		FileFieldName string
 	}
@@ -38,7 +38,7 @@ type (
 	// A multipart response extracted from an http.Request object
 	MultipartResponse struct {
 		// The file included in the request
-		File   multipart.File
+		File multipart.File
 		// The header metadata describing the file
 		Header *multipart.FileHeader
 	}
