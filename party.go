@@ -36,7 +36,7 @@ type (
 	}
 
 	// A multipart response extracted from an http.Request object
-	MultipartResponse struct {
+	MultipartPayload struct {
 		// The file included in the request
 		File multipart.File
 		// The header metadata describing the file
@@ -45,7 +45,7 @@ type (
 )
 
 // Translate an incoming HTTP request into a multipart file and a multipart file header (or an error).
-func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request) (*MultipartResponse, error) {
+func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request) (*MultipartPayload, error) {
 	if err := h.validate(); err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request)
 		return nil, err
 	}
 
-	return &MultipartResponse{
+	return &MultipartPayload{
 		File:   file,
 		Header: header,
 	}, nil

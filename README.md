@@ -43,13 +43,13 @@ Go's core libraries are extremely good in general but not always terribly ergono
     }
 
     func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
-        res, err := multipartHandler.Handle(w, r)
+        payload, err := multipartHandler.Handle(w, r)
         if err != nil {
             handleError(err)
         }
 
-        file := res.File
-        headers := res.Header
+        file := payload.File
+        header := payload.Header
 
         // Do something with the file and header
     }
