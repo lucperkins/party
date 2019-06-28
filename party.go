@@ -13,18 +13,28 @@ const defaultFileFieldName = "file"
 
 var ErrEmptyRequest = errors.New("request has no file and no request params")
 
+// Multipart request configuration. A file can be included with the request and/or form parameters. An ErrEmptyRequest
+// is returned if neither is present.
 type MultipartRequest struct {
+	// Path to the file to include the request (optional)
 	Filepath      string
+	// The field name for the file included in the request (default is "file")
 	FileFieldName string
+	// The request boundary (automatically generated if none supplied)
 	Boundary      string
+	// Multipart request parameters (optional)
 	Params        map[string]string
 }
 
+// Multipart request handler configuration.
 type MultipartRequestHandler struct {
+	// Maximum allowable bytes in the request
 	MaxBytes      int64
+	// The field name for the file included in the request (default is "file")
 	FileFieldName string
 }
 
+// Translate an incoming HTTP request into a multipart file and a multipart file header (or an error).
 func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request) (multipart.File, *multipart.FileHeader, error) {
 	if err := h.validate(); err != nil {
 		return nil, nil, err
@@ -43,6 +53,8 @@ func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request)
 	return r.FormFile(h.FileFieldName)
 }
 
+// Creates a request body (as a byte buffer) out of the supplied multipart request configuration and also returns the
+// content type of the request, and the boundary of the request, largely for testing purposes (or an error).
 func (c *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -86,6 +98,7 @@ func (c *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 	return body, writer.FormDataContentType(), writer.Boundary(), nil
 }
 
+// Translates the multipart request configuration into a pointer to an http.Request or an error.
 func (c *MultipartRequest) Request(method, url string) (*http.Request, error) {
 	if err := c.validate(); err != nil {
 		return nil, err
@@ -106,6 +119,7 @@ func (c *MultipartRequest) Request(method, url string) (*http.Request, error) {
 	return req, nil
 }
 
+// Validates the multipart request handler config
 func (h *MultipartRequestHandler) validate() error {
 	if h.FileFieldName == "" {
 		h.FileFieldName = defaultFileFieldName
@@ -114,6 +128,7 @@ func (h *MultipartRequestHandler) validate() error {
 	return nil
 }
 
+// Validates the multipart request config
 func (c *MultipartRequest) validate() error {
 	if c.Filepath == "" && c.Params == nil {
 		return ErrEmptyRequest

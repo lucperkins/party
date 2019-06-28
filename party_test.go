@@ -3,7 +3,9 @@ package party
 import (
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
+	"net/http"
 	"testing"
 )
 
@@ -72,4 +74,54 @@ func TestMultipartRequestHandler(t *testing.T) {
 
 	is.Equal(handler.FileFieldName, defaultFileFieldName)
 	is.Equal(handler.MaxBytes, int64(32 << 20))
+}
+
+func ExampleMultipartRequest_Request() {
+	params := &MultipartRequest{
+		Filepath: "./dissertation.pdf",
+		FileFieldName: "file",
+		Params: map[string]string{
+			"Author": "Luc Perkins",
+			"Title": "The purposive Prometheus: re-imagining practical reason beyond homo œconomicus",
+		},
+	}
+
+	req, err := params.Request(http.MethodPost, "https://example.com/dissertations")
+	if err != nil {
+		log.Println(err)
+	}
+
+	res, err := http.Client{}.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println(res.StatusCode)
+}
+
+func ExampleMultipartRequestHandler_Handle() {
+	handler := &MultipartRequestHandler{
+		MaxBytes: 32 << 20,
+	}
+
+	srv := &http.Server{
+		Addr: ":8080",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			file, header, err := handler.Handle(w, r)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			log.Println("Filename:", header.Filename)
+			bs, err := ioutil.ReadAll(file)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			log.Println("File contents:")
+			log.Print(string(bs))
+		}),
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
