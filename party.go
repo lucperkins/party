@@ -9,7 +9,8 @@ import (
 	"os"
 )
 
-const defaultFileFieldName = "file"
+// The file key used by default in the multipart request ("file").
+const DefaultFileFieldName = "file"
 
 // A multipart request validation error thrown when neither file nor parameters are present.
 var ErrEmptyRequest = errors.New("request has no file and no request params")
@@ -58,7 +59,7 @@ func (h *MultipartRequestHandler) Handle(w http.ResponseWriter, r *http.Request)
 	r.Body = http.MaxBytesReader(w, r.Body, h.MaxBytes)
 
 	if h.FileFieldName == "" {
-		h.FileFieldName = defaultFileFieldName
+		h.FileFieldName = DefaultFileFieldName
 	}
 
 	file, header, err := r.FormFile(h.FileFieldName)
@@ -91,7 +92,7 @@ func (c *MultipartRequest) body() (*bytes.Buffer, string, string, error) {
 		}
 
 		if c.FileFieldName == "" {
-			c.FileFieldName = defaultFileFieldName
+			c.FileFieldName = DefaultFileFieldName
 		}
 
 		part, err := writer.CreateFormFile(c.FileFieldName, c.Filepath)
@@ -141,7 +142,7 @@ func (c *MultipartRequest) Request(method, url string) (*http.Request, error) {
 // Validates the multipart request handler config
 func (h *MultipartRequestHandler) validate() error {
 	if h.FileFieldName == "" {
-		h.FileFieldName = defaultFileFieldName
+		h.FileFieldName = DefaultFileFieldName
 	}
 
 	return nil

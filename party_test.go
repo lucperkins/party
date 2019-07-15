@@ -79,7 +79,7 @@ func TestMultipartRequestHandler(t *testing.T) {
 	}
 	is.NoError(handler.validate())
 
-	is.Equal(handler.FileFieldName, defaultFileFieldName)
+	is.Equal(handler.FileFieldName, DefaultFileFieldName)
 	is.Equal(handler.MaxBytes, int64(32<<20))
 
 	params := &MultipartRequest{
