@@ -11,6 +11,7 @@ import (
 
 const defaultFileFieldName = "file"
 
+// A multipart request validation error thrown when neither file nor parameters are present.
 var ErrEmptyRequest = errors.New("request has no file and no request params")
 
 type (
